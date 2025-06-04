@@ -1,12 +1,9 @@
 use std::io;
 
-use board::*;
 use clap::Parser;
-use config::Args;
+use minesweeper::board::*;
+use minesweeper::config::Args;
 use regex::Regex;
-
-mod board;
-mod config;
 
 fn main() {
     let args = Args::parse();

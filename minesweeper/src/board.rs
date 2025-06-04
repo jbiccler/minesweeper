@@ -44,15 +44,23 @@ pub enum FlagError {
     OutOfBounds,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Square {
+    Mine,
+    Opened(u8),
+    Flag,
+    NotYetOpened,
+}
+
 pub struct Board {
-    rows: usize,
-    cols: usize,
-    nr_mines: usize,
+    pub rows: usize,
+    pub cols: usize,
+    pub nr_mines: usize,
     mines: Option<HashSet<Position>>,
-    open_fields: HashSet<Position>,
-    flagged_fields: HashSet<Position>,
-    counts: HashMap<Position, u32>,
-    state: GameState,
+    pub open_fields: HashSet<Position>,
+    pub flagged_fields: HashSet<Position>,
+    pub counts: HashMap<Position, u8>,
+    pub state: GameState,
 }
 
 impl Board {
@@ -238,7 +246,7 @@ impl Board {
         }
     }
 
-    fn iter_neighbors(&self, (x, y): Position) -> impl Iterator<Item = Position> {
+    pub fn iter_neighbors(&self, (x, y): Position) -> impl Iterator<Item = Position> {
         let (r, c) = (self.rows as isize, self.cols as isize);
         let x = x as isize;
         let y = y as isize;
@@ -254,6 +262,39 @@ impl Board {
         self.iter_neighbors(pos)
             .filter(|pos| self.mines.as_ref().unwrap().contains(pos))
             .count() as u8
+    }
+
+    pub fn get_board_state(&self) -> Vec<Vec<Square>> {
+        let mut map = vec![vec![Square::NotYetOpened; self.cols]; self.rows];
+        if self.state == GameState::Init {
+            return map;
+        }
+        for (x, y) in self.open_fields.iter() {
+            map[*y][*x] = Square::Opened(self.counts.get(&(*x, *y)).unwrap_or(&0u8).to_owned());
+        }
+        if self.state == GameState::Lost {
+            for (x, y) in self.mines.as_ref().unwrap().iter() {
+                map[*y][*x] = Square::Mine;
+            }
+        }
+        for (x, y) in self.flagged_fields.iter() {
+            map[*y][*x] = Square::Flag;
+        }
+        map
+    }
+
+    pub fn get_frontier(&self) -> HashSet<Position> {
+        let mut frontier = HashSet::new();
+        for &open in self.open_fields.iter() {
+            let neighbors = self.iter_neighbors(open);
+            for n in neighbors {
+                if !self.open_fields.contains(&n) {
+                    frontier.insert(open);
+                    break;
+                }
+            }
+        }
+        frontier
     }
 }
 

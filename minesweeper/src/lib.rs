@@ -1,2 +1,2 @@
-mod board;
-mod config;
+pub mod board;
+pub mod config;
